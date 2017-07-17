@@ -10,46 +10,47 @@
             type="info.mschmitt.video.MainActivity" />
     </data>
 
-    <android.support.design.widget.CoordinatorLayout
-        android:id="@+id/coordinatorLayout"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fitsSystemWindows="true">
+        android:background="@android:color/black">
+
+        <com.google.android.exoplayer2.ui.SimpleExoPlayerView
+            android:id="@+id/simpleExoPlayerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:visibleGone="@{activity.viewModel.uri != null}" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#888"
+            app:visibleGone="@{activity.viewModel.uri == null}">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@android:color/white"
+                android:text="Video Player" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:background="@color/playerMask"
+            android:orientation="vertical"
+            android:visibility="@{activity.viewModel.controllerVisibility}">
 
-            <android.support.design.widget.AppBarLayout
+            <info.mschmitt.support.views.StatusBarPlaceholderView
+                android:layout_width="0px"
+                android:layout_height="0px" />
+
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <android.support.v7.widget.Toolbar
-                    android:id="@+id/toolbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    android:background="@color/primary"
-                    android:theme="@style/AppThemeToolbar" />
-            </android.support.design.widget.AppBarLayout>
-
-            <com.google.android.exoplayer2.ui.SimpleExoPlayerView
-                android:id="@+id/simpleExoPlayerView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:visibleGone="@{activity.viewModel.uri != null}" />
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@android:color/background_light"
-                app:visibleGone="@{activity.viewModel.uri == null}">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="No content" />
-            </FrameLayout>
+                android:layout_height="?attr/actionBarSize"
+                android:theme="@style/AppThemeToolbar" />
         </LinearLayout>
-    </android.support.design.widget.CoordinatorLayout>
+    </FrameLayout>
 </layout>

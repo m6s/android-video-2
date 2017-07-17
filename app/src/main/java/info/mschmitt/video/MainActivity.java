@@ -45,6 +45,22 @@ public class MainActivity extends AppCompatActivity {
                 .setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         binding.setActivity(this);
+        binding.simpleExoPlayerView.setControllerVisibilityListener(visibility -> {
+            viewModel.controllerVisibility = visibility;
+            viewModel.notifyChange();
+            if (visibility == View.VISIBLE) {
+                hideSystemUi();
+            } else {
+                showSystemUi();
+            }
+        });
+        View decorView = getWindow().getDecorView();
+        decorView.setOnSystemUiVisibilityChangeListener(visibility -> {
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                binding.simpleExoPlayerView.showController();
+            }
+        });
+        setSupportActionBar(binding.toolbar);
         if (binding.simpleExoPlayerView.getPlayer() == null) {
             BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
             TrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
@@ -57,6 +73,22 @@ public class MainActivity extends AppCompatActivity {
         } else {
             preparePlayer();
         }
+    }
+
+    private void showSystemUi() {
+        binding.getRoot()
+                .setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+    }
+
+    private void hideSystemUi() {
+        binding.getRoot()
+                .setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+//                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
     private void processIntent(Intent intent) {
@@ -158,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
         @Bindable public transient Uri uri;
         private boolean playVideoWhenForegrounded;
         private long lastPosition;
+        public int controllerVisibility;
 
         private void writeObject(ObjectOutputStream oop) throws IOException {
             try {
