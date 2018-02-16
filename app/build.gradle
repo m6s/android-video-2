@@ -31,5 +31,5 @@ android {
 
 dependencies {
     compile project(path: ':libs:support-android')
-    compile 'com.google.android.exoplayer:exoplayer:r2.4.3'
+    compile 'com.google.android.exoplayer:exoplayer:2.6.1'
 }
