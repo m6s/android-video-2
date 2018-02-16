@@ -4,6 +4,7 @@
     package="info.mschmitt.video"
     tools:ignore="GoogleAppIndexingWarning">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:name=".VideoApplication"
         android:allowBackup="true"
