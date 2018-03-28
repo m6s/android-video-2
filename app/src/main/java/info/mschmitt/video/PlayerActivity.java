@@ -36,18 +36,18 @@ public class PlayerActivity extends AppCompatActivity {
         Uri uri = Uri.parse("file:///android_asset/ragnar.mp4");
         MediaSource mediaSource = mediaSourceFactory.createMediaSource(uri);
         player.prepare(mediaSource);
-        binding.simpleExoPlayerView.setPlayer(player);
+        binding.exoPlayerView.setPlayer(player);
     }
 
     @Override
     protected void onDestroy() {
-        binding.simpleExoPlayerView.getPlayer().release();
+        binding.exoPlayerView.getPlayer().release();
         super.onDestroy();
     }
 
     @Override
     protected void onPause() {
-        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.exoPlayerView.getPlayer();
         player.setPlayWhenReady(false);
         super.onPause();
     }

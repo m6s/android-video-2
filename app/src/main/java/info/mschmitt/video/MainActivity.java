@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
                 .setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         binding.setActivity(this);
-        binding.simpleExoPlayerView.setControllerVisibilityListener(visibility -> {
+        binding.exoPlayerView.setControllerVisibilityListener(visibility -> {
             viewModel.controllerVisibility = visibility;
             viewModel.notifyChange();
             if (visibility == View.VISIBLE) {
@@ -57,11 +57,11 @@ public class MainActivity extends AppCompatActivity {
         View decorView = getWindow().getDecorView();
         decorView.setOnSystemUiVisibilityChangeListener(visibility -> {
             if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                binding.simpleExoPlayerView.showController();
+                binding.exoPlayerView.showController();
             }
         });
         setSupportActionBar(binding.toolbar);
-        if (binding.simpleExoPlayerView.getPlayer() == null) {
+        if (binding.exoPlayerView.getPlayer() == null) {
             BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
             TrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
             TrackSelector trackSelector = new DefaultTrackSelector(trackSelectionFactory);
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
                     super.onPlayerError(error);
                 }
             });
-            binding.simpleExoPlayerView.setPlayer(player);
+            binding.exoPlayerView.setPlayer(player);
         }
         if (viewModel.uri == null) {
             processIntent(getIntent());
@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void preparePlayer() {
-        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.exoPlayerView.getPlayer();
         DataSource.Factory dataSourceFactory =
                 new DefaultDataSourceFactory(this, Util.getUserAgent(this, "VideoApplication"));
         ExtractorMediaSource.Factory mediaSourceFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        binding.simpleExoPlayerView.getPlayer().release();
+        binding.exoPlayerView.getPlayer().release();
         super.onDestroy();
     }
 
@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.exoPlayerView.getPlayer();
         // Store off if we were playing so we know if we should start when we're foregrounded again.
         viewModel.playVideoWhenForegrounded = player.getPlayWhenReady();
         // Store off the last position our player was in before we paused it.
@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.exoPlayerView.getPlayer();
         // Seek to the last position of the player.
         player.seekTo(viewModel.lastPosition);
         // Put the player into the last state we were in.
