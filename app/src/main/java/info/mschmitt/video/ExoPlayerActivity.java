@@ -17,15 +17,15 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
-import info.mschmitt.video.databinding.PlayerActivityBinding;
+import info.mschmitt.video.databinding.ExoPlayerActivityBinding;
 
-public class PlayerActivity extends AppCompatActivity {
-    private PlayerActivityBinding binding;
+public class ExoPlayerActivity extends AppCompatActivity {
+    private ExoPlayerActivityBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = DataBindingUtil.setContentView(this, R.layout.player_activity);
+        binding = DataBindingUtil.setContentView(this, R.layout.exo_player_activity);
         BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
         TrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
         TrackSelector trackSelector = new DefaultTrackSelector(trackSelectionFactory);

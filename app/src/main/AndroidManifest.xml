@@ -46,9 +46,14 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PlayerActivity"
+            android:name=".ExoPlayerActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:label="Player Test" />
+            android:label="Exo Player Test" />
+        <activity
+            android:name=".VideoPlayerActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true"
+            android:label="Video Player Test" />
     </application>
 </manifest>
