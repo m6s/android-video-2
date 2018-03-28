@@ -45,5 +45,10 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".PlayerActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true"
+            android:label="Player Test" />
     </application>
 </manifest>

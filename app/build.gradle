@@ -24,12 +24,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    packagingOptions {
-        exclude 'META-INF/rxjava.properties'
-    }
 }
 
 dependencies {
-    compile project(path: ':libs:support-android')
-    compile 'com.google.android.exoplayer:exoplayer:2.6.1'
+    implementation project(path: ':libs:support-android')
+    implementation 'com.google.android.exoplayer:exoplayer:2.7.1'
 }

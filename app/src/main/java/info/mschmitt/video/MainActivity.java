@@ -8,10 +8,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.extractor.ExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
@@ -66,6 +66,12 @@ public class MainActivity extends AppCompatActivity {
             TrackSelection.Factory trackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
             TrackSelector trackSelector = new DefaultTrackSelector(trackSelectionFactory);
             SimpleExoPlayer player = ExoPlayerFactory.newSimpleInstance(this, trackSelector);
+            player.addListener(new Player.DefaultEventListener() {
+                @Override
+                public void onPlayerError(ExoPlaybackException error) {
+                    super.onPlayerError(error);
+                }
+            });
             binding.simpleExoPlayerView.setPlayer(player);
         }
         if (viewModel.uri == null) {
@@ -110,12 +116,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void preparePlayer() {
-        SimpleExoPlayer player = binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
         DataSource.Factory dataSourceFactory =
                 new DefaultDataSourceFactory(this, Util.getUserAgent(this, "VideoApplication"));
-        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
-        MediaSource mediaSource =
-                new ExtractorMediaSource(viewModel.uri, dataSourceFactory, extractorsFactory, null, null);
+        ExtractorMediaSource.Factory mediaSourceFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
+        MediaSource mediaSource = mediaSourceFactory.createMediaSource(viewModel.uri);
         player.prepare(mediaSource);
     }
 
@@ -159,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
-        SimpleExoPlayer player = binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
         // Store off if we were playing so we know if we should start when we're foregrounded again.
         viewModel.playVideoWhenForegrounded = player.getPlayWhenReady();
         // Store off the last position our player was in before we paused it.
@@ -179,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        SimpleExoPlayer player = binding.simpleExoPlayerView.getPlayer();
+        SimpleExoPlayer player = (SimpleExoPlayer) binding.simpleExoPlayerView.getPlayer();
         // Seek to the last position of the player.
         player.seekTo(viewModel.lastPosition);
         // Put the player into the last state we were in.
