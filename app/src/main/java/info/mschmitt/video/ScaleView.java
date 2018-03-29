@@ -3,7 +3,6 @@ package info.mschmitt.video;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.text.TextPaint;
 import android.util.AttributeSet;
@@ -15,7 +14,8 @@ import android.view.View;
  */
 public class ScaleView extends View {
     static final int STEP_STROKE_WIDTH = 4;
-    private static final String TEXT_750_MS = "750 ms";
+    private static final String[] TEXTS =
+            {"750 ms", "12 sec", "250 ms", "500 ms", "750 ms", "13 sec", "250 ms", "500 ms", "750 ms", "14 sec"};
     private static final int TEXT_COLOR = 0xffffffff;
     private static final int LINE_COLOR = 0xffffffff;
     private final TextPaint textPaint;
@@ -24,10 +24,8 @@ public class ScaleView extends View {
     int firstStepPx = 20;
     int firstBigStepIndex = 3;
     int bigStepIncrement = 4;
-    int smallStepHeightPx = 60;
-    int bigStepHeightPx = 100;
-    private int textWidth;
-    private int textHeight;
+    int smallStepHeightPx = 30;
+    int bigStepHeightPx = 80;
     private int textY;
 
     {
@@ -53,15 +51,12 @@ public class ScaleView extends View {
         super(context, attrs, defStyleAttr);
         float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
         textPaint.setTextSize(textSize);
-        textWidth = (int) textPaint.measureText(TEXT_750_MS) + 1;
-        Rect bounds = new Rect();
-        textPaint.getTextBounds(TEXT_750_MS, 0, TEXT_750_MS.length(), bounds);
-        textHeight = bounds.bottom - bounds.top;
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        int textHeight = (int) (textPaint.descent() - textPaint.ascent());
         textY = (h - bigStepHeightPx + textHeight) / 2;
     }
 
@@ -70,14 +65,16 @@ public class ScaleView extends View {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
-        int nextBigStepIndex = firstBigStepIndex;
-        for (int i = 0; i < width / stepWidthPx; i++) {
-            int stepX = firstStepPx + i * stepWidthPx;
+        int bigIndex = 0;
+        for (int smallIndex = 0; smallIndex < width / stepWidthPx; smallIndex++) {
+            int stepX = firstStepPx + smallIndex * stepWidthPx;
             int stepStartY;
-            if (i == nextBigStepIndex) {
+            if (smallIndex == firstBigStepIndex + bigIndex * bigStepIncrement) {
+                String text = TEXTS[bigIndex];
+                int textWidth = (int) textPaint.measureText(text) + 1;
                 stepStartY = height - bigStepHeightPx;
-                nextBigStepIndex += bigStepIncrement;
-                canvas.drawText(TEXT_750_MS, stepX - textWidth / 2, textY, textPaint);
+                canvas.drawText(text, stepX - textWidth / 2, textY, textPaint);
+                bigIndex++;
             } else {
                 stepStartY = height - smallStepHeightPx;
             }
