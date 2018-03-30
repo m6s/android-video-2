@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.text.TextPaint;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 
@@ -19,13 +20,14 @@ public class ScaleView extends View {
     private static final int TEXT_COLOR = 0xffffffff;
     private static final int LINE_COLOR = 0xffffffff;
     private final TextPaint textPaint;
-    private final Paint stepPaint;
-    int stepWidthPx = 60;
-    int firstStepPx = 20;
-    int firstBigStepIndex = 3;
+    private final Paint linePaint;
+    private final int shortLineHeight;
+    private final int tallLineHeight;
+    private final int textPadding;
+    int stepWidth = 240;
+    int offset = 200;
+    int firstBigStepIndex = 1;
     int bigStepIncrement = 4;
-    int smallStepHeightPx = 30;
-    int bigStepHeightPx = 80;
     private int textY;
 
     {
@@ -33,10 +35,10 @@ public class ScaleView extends View {
         textPaint.setFlags(Paint.ANTI_ALIAS_FLAG);
         textPaint.setTextAlign(Paint.Align.LEFT);
         textPaint.setColor(TEXT_COLOR);
-        stepPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        stepPaint.setStyle(Paint.Style.STROKE);
-        stepPaint.setStrokeWidth(STEP_STROKE_WIDTH);
-        stepPaint.setColor(LINE_COLOR);
+        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeWidth(STEP_STROKE_WIDTH);
+        linePaint.setColor(LINE_COLOR);
     }
 
     public ScaleView(Context context) {
@@ -49,15 +51,28 @@ public class ScaleView extends View {
 
     public ScaleView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, displayMetrics);
         textPaint.setTextSize(textSize);
+        shortLineHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, displayMetrics);
+        tallLineHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 18, displayMetrics);
+        textPadding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, displayMetrics);
+    }
+
+    public void setStepWidth(int stepWidth) {
+        this.stepWidth = stepWidth;
+        invalidate();
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+        invalidate();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        int textHeight = (int) (textPaint.descent() - textPaint.ascent());
-        textY = (h - bigStepHeightPx + textHeight) / 2;
+        textY = h - tallLineHeight - textPadding;
     }
 
     @Override
@@ -66,19 +81,19 @@ public class ScaleView extends View {
         int width = getWidth();
         int height = getHeight();
         int bigIndex = 0;
-        for (int smallIndex = 0; smallIndex < width / stepWidthPx; smallIndex++) {
-            int stepX = firstStepPx + smallIndex * stepWidthPx;
+        for (int i = 0; i < width / stepWidth; i++) {
+            int startX = offset + i * stepWidth;
+            String text = TEXTS[i];
+            int textWidth = (int) textPaint.measureText(text) + 1;
             int stepStartY;
-            if (smallIndex == firstBigStepIndex + bigIndex * bigStepIncrement) {
-                String text = TEXTS[bigIndex];
-                int textWidth = (int) textPaint.measureText(text) + 1;
-                stepStartY = height - bigStepHeightPx;
-                canvas.drawText(text, stepX - textWidth / 2, textY, textPaint);
+            if (i == firstBigStepIndex + bigIndex * bigStepIncrement) {
+                stepStartY = height - tallLineHeight;
                 bigIndex++;
             } else {
-                stepStartY = height - smallStepHeightPx;
+                stepStartY = height - shortLineHeight;
             }
-            canvas.drawLine(stepX, stepStartY, stepX, height, stepPaint);
+            canvas.drawText(text, startX - textWidth / 2, textY, textPaint);
+            canvas.drawLine(startX, stepStartY, startX, height, linePaint);
         }
     }
 }
