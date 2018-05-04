@@ -61,6 +61,14 @@ public class PanBar extends View implements TimeBar {
             startIndex++;
         }
         for (long i = startIndex; ; i++) {
+            if (i * strokeInterval > duration) {
+                int x = (int) ((duration - position) * scaleFactor);
+                if (x > width) {
+                    break;
+                }
+                canvas.drawLine(x, 0, x, height, strokePaint);
+                break;
+            }
             int x = (int) ((i * strokeInterval - position) * scaleFactor);
             if (x > width) {
                 break;
