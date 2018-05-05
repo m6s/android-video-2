@@ -14,8 +14,8 @@ public class TimeBarActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.time_bar_activity);
         binding.panBar.setStrokeInterval(100);
-        binding.panBar.setScaleFactor(TypedValue.COMPLEX_UNIT_DIP, 1);
         binding.panBar.setPosition(305420);
         binding.panBar.setDuration(305700);
+        binding.panBar.setScaleFactor(TypedValue.COMPLEX_UNIT_DIP, 1, 1);
     }
 }
