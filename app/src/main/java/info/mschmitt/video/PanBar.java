@@ -1,6 +1,5 @@
 package info.mschmitt.video;
 
-import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -39,7 +38,6 @@ public class PanBar extends View implements TimeBar {
     private long dragStartPosition;
     private float distanceX;
     private float distanceY;
-    private ValueAnimator flingAnimator;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
