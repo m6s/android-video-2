@@ -1,5 +1,6 @@
 package info.mschmitt.video;
 
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -13,6 +14,7 @@ import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.widget.Scroller;
 import com.google.android.exoplayer2.ui.TimeBar;
 
 /**
@@ -25,6 +27,7 @@ public class PanBar extends View implements TimeBar {
     private final int stokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
+    private final Scroller scroller;
     private long strokeInterval;
     private long position;
     private long duration;
@@ -36,6 +39,7 @@ public class PanBar extends View implements TimeBar {
     private long dragStartPosition;
     private float distanceX;
     private float distanceY;
+    private ValueAnimator flingAnimator;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -60,6 +64,7 @@ public class PanBar extends View implements TimeBar {
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
+        scroller = new Scroller(getContext());
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -125,6 +130,7 @@ public class PanBar extends View implements TimeBar {
     }
 
     private void startDrag() {
+        scroller.abortAnimation();
         dragStartPosition = position;
     }
 
@@ -137,7 +143,18 @@ public class PanBar extends View implements TimeBar {
         }
         velocityX =
                 velocityX > 0 ? Math.min(maximumFlingVelocity, velocityX) : -Math.min(maximumFlingVelocity, -velocityX);
+        scroller.fling((int) (position * scaleFactor), 0, (int) -velocityX, 0, 0, (int) (duration * scaleFactor), 0, 0);
+        postOnAnimation(this::updateFromScroller);
         return true;
+    }
+
+    private void updateFromScroller() {
+        if (scroller.computeScrollOffset()) {
+            int currX = scroller.getCurrX();
+            position = (long) (currX / scaleFactor);
+            invalidate();
+            postOnAnimation(this::updateFromScroller);
+        }
     }
 
     private void drag(float distanceX, float distanceY) {
