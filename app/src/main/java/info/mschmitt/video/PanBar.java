@@ -7,7 +7,6 @@ import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -32,12 +31,8 @@ public class PanBar extends View implements TimeBar {
     private long duration;
     private float scaleFactor;
     private VelocityTracker velocityTracker;
-    private float lastCenterX;
-    private float lastSpreadX;
-    private float dragDistanceX;
-    private float scaleMultiplierX;
-    private long dragStartPosition;
-    private float scaleStartScaleFactor;
+    private float oldMaxX;
+    private float oldMinX;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -70,36 +65,31 @@ public class PanBar extends View implements TimeBar {
     public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
         int pointerCount = event.getPointerCount();
+        int index = event.getActionIndex();
+        float maxX = Float.MIN_VALUE;
+        float minX = Float.MAX_VALUE;
+        for (int i = 0; i < pointerCount; i++) {
+            if (action == MotionEvent.ACTION_POINTER_UP && i == index) {
+                continue;
+            }
+            maxX = Math.max(maxX, event.getX(i));
+            minX = Math.min(minX, event.getX(i));
+        }
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 if (velocityTracker == null) {
                     velocityTracker = VelocityTracker.obtain();
                 }
                 velocityTracker.addMovement(event);
-                // Remember where we started (for dragging)
-                lastCenterX = event.getX(0);
-                dragDistanceX = 0;
-                scaleMultiplierX = 1;
-                startDrag();
+                oldMinX = minX;
+                oldMaxX = maxX;
+                startDragScale();
                 break;
             case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
-                float maxX = Float.MIN_VALUE;
-                float minX = Float.MAX_VALUE;
-                for (int i = 0; i < pointerCount; i++) {
-                    maxX = Math.max(maxX, event.getX(i));
-                    minX = Math.min(minX, event.getX(i));
-                }
-                float spreadX = maxX - minX;
-                if (pointerCount > 1 && lastSpreadX > 0) {
-                    scaleMultiplierX *= spreadX / lastSpreadX;
-                }
-                lastSpreadX = spreadX;
-                float centerX = minX + (maxX - minX) / 2;
-                dragDistanceX += centerX - lastCenterX;
-                // Remember this touch position for the next move event
-                lastCenterX = centerX;
-                dragScale(dragDistanceX, scaleMultiplierX);
+                dragScale(minX, maxX, oldMinX, oldMaxX);
+                oldMinX = minX;
+                oldMaxX = maxX;
                 break;
             }
             case MotionEvent.ACTION_UP:
@@ -111,22 +101,11 @@ public class PanBar extends View implements TimeBar {
                 velocityTracker.recycle();
                 velocityTracker = null;
                 break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-            case MotionEvent.ACTION_POINTER_UP: {
-                int index = event.getActionIndex();
-                float maxX = Float.MIN_VALUE;
-                float minX = Float.MAX_VALUE;
-                for (int i = 0; i < pointerCount; i++) {
-                    if (action == MotionEvent.ACTION_POINTER_UP && i == index) {
-                        continue;
-                    }
-                    maxX = Math.max(maxX, event.getX(i));
-                    minX = Math.min(minX, event.getX(i));
-                }
-                lastCenterX = minX + (maxX - minX) / 2;
-                lastSpreadX = maxX - minX;
-            }
+            case MotionEvent.ACTION_POINTER_UP:
+                break;
         }
+        oldMaxX = maxX;
+        oldMinX = minX;
         return true;
     }
 
@@ -149,16 +128,18 @@ public class PanBar extends View implements TimeBar {
         }
     }
 
-    private void startDrag() {
+    private void startDragScale() {
         scroller.abortAnimation();
-        dragStartPosition = position;
-        scaleStartScaleFactor = scaleFactor;
     }
 
-    private void dragScale(float distance, float factor) {
-        Log.d("X", "drag: " + distance + "scale: " + factor);
-        scaleFactor = scaleStartScaleFactor * factor;
-        position = (long) (dragStartPosition - distance / scaleFactor);
+    private void dragScale(float min, float max, float oldMin, float oldMax) {
+        float multiplier = 1;
+        if (oldMax != oldMin && max != min) {
+            multiplier = (max - min) / (oldMax - oldMin);
+        }
+        scaleFactor = scaleFactor * multiplier;
+        float distance = min - multiplier * oldMin;
+        position = (long) (position - distance / scaleFactor);
         position = Math.max(0, position);
         position = Math.min(duration, position);
         postInvalidateOnAnimation();
