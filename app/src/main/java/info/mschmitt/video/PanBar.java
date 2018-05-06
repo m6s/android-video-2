@@ -32,12 +32,12 @@ public class PanBar extends View implements TimeBar {
     private long duration;
     private float scaleFactor;
     private VelocityTracker velocityTracker;
-    private float lastTouchX;
-    private float lastTouchY;
-    private int activePointerId;
+    private float lastCenterX;
+    private float lastSpreadX;
+    private float dragDistanceX;
+    private float scaleMultiplierX;
     private long dragStartPosition;
-    private float distanceX;
-    private float distanceY;
+    private float scaleStartScaleFactor;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -68,9 +68,8 @@ public class PanBar extends View implements TimeBar {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int index = event.getActionIndex();
         int action = event.getActionMasked();
-        int pointerId = event.getPointerId(index);
+        int pointerCount = event.getPointerCount();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 if (velocityTracker == null) {
@@ -78,72 +77,67 @@ public class PanBar extends View implements TimeBar {
                 }
                 velocityTracker.addMovement(event);
                 // Remember where we started (for dragging)
-                lastTouchX = event.getX(index);
-                lastTouchY = event.getY(index);
-                distanceX = 0;
-                distanceY = 0;
-                // Save the ID of this pointer (for dragging)
-                activePointerId = event.getPointerId(0);
+                lastCenterX = event.getX(0);
+                dragDistanceX = 0;
+                scaleMultiplierX = 1;
                 startDrag();
                 break;
-            case MotionEvent.ACTION_MOVE:
+            case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
-                int activePointerIndex = event.findPointerIndex(activePointerId);
-                // Calculate the distance moved
-                float x = event.getX(activePointerIndex);
-                float y = event.getY(activePointerIndex);
-                distanceX += x - lastTouchX;
-                distanceY += y - lastTouchY;
+                float maxX = Float.MIN_VALUE;
+                float minX = Float.MAX_VALUE;
+                for (int i = 0; i < pointerCount; i++) {
+                    maxX = Math.max(maxX, event.getX(i));
+                    minX = Math.min(minX, event.getX(i));
+                }
+                float spreadX = maxX - minX;
+                if (pointerCount > 1 && lastSpreadX > 0) {
+                    scaleMultiplierX *= spreadX / lastSpreadX;
+                }
+                lastSpreadX = spreadX;
+                float centerX = minX + (maxX - minX) / 2;
+                dragDistanceX += centerX - lastCenterX;
                 // Remember this touch position for the next move event
-                lastTouchX = x;
-                lastTouchY = y;
-                drag(distanceX, distanceY);
+                lastCenterX = centerX;
+                dragScale(dragDistanceX, scaleMultiplierX);
                 break;
+            }
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 velocityTracker.addMovement(event);
                 velocityTracker.computeCurrentVelocity(1000);
-                float velocityX = velocityTracker.getXVelocity(activePointerId);
-                float velocityY = velocityTracker.getYVelocity(activePointerId);
-                // Return a VelocityTracker object back to be re-used by others.
-                activePointerId = -1;
-                if (!fling(velocityX, velocityY)) {
-                    endDrag();
-                }
-                // Return a VelocityTracker object back to be re-used by others.
+                float velocityX = velocityTracker.getXVelocity();
+                fling(velocityX);
                 velocityTracker.recycle();
                 velocityTracker = null;
                 break;
-            case MotionEvent.ACTION_POINTER_UP:
-                if (pointerId == activePointerId) {
-                    // This was our active pointer going up. Choose a new active pointer and adjust accordingly.
-                    final int newPointerIndex = index == 0 ? 1 : 0;
-                    lastTouchX = event.getX(newPointerIndex);
-                    lastTouchY = event.getY(newPointerIndex);
-                    activePointerId = event.getPointerId(newPointerIndex);
-                    break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_POINTER_UP: {
+                int index = event.getActionIndex();
+                float maxX = Float.MIN_VALUE;
+                float minX = Float.MAX_VALUE;
+                for (int i = 0; i < pointerCount; i++) {
+                    if (action == MotionEvent.ACTION_POINTER_UP && i == index) {
+                        continue;
+                    }
+                    maxX = Math.max(maxX, event.getX(i));
+                    minX = Math.min(minX, event.getX(i));
                 }
+                lastCenterX = minX + (maxX - minX) / 2;
+                lastSpreadX = maxX - minX;
+            }
         }
         return true;
     }
 
-    private void startDrag() {
-        scroller.abortAnimation();
-        dragStartPosition = position;
-    }
-
-    private void endDrag() {
-    }
-
-    private boolean fling(float velocityX, float velocityY) {
+    private void fling(float velocityX) {
         if (Math.abs(velocityX) <= minimumFlingVelocity) {
-            return false;
+            return;
         }
         velocityX =
                 velocityX > 0 ? Math.min(maximumFlingVelocity, velocityX) : -Math.min(maximumFlingVelocity, -velocityX);
         scroller.fling((int) (position * scaleFactor), 0, (int) -velocityX, 0, 0, (int) (duration * scaleFactor), 0, 0);
         postOnAnimation(this::updateFromScroller);
-        return true;
     }
 
     private void updateFromScroller() {
@@ -155,9 +149,16 @@ public class PanBar extends View implements TimeBar {
         }
     }
 
-    private void drag(float distanceX, float distanceY) {
-        Log.d("X", "drag: " + distanceX);
-        position = (long) (dragStartPosition - distanceX / scaleFactor);
+    private void startDrag() {
+        scroller.abortAnimation();
+        dragStartPosition = position;
+        scaleStartScaleFactor = scaleFactor;
+    }
+
+    private void dragScale(float distance, float factor) {
+        Log.d("X", "drag: " + distance + "scale: " + factor);
+        scaleFactor = scaleStartScaleFactor * factor;
+        position = (long) (dragStartPosition - distance / scaleFactor);
         position = Math.max(0, position);
         position = Math.min(duration, position);
         postInvalidateOnAnimation();
