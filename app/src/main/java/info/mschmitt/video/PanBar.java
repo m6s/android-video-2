@@ -34,6 +34,8 @@ public class PanBar extends View implements TimeBar {
     private float oldMaxX;
     private float oldMinX;
     private int offset;
+    private long initialPosition;
+    private float positionChange;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -88,7 +90,12 @@ public class PanBar extends View implements TimeBar {
                 break;
             case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
-                dragScale(minX, maxX, oldMinX, oldMaxX);
+                float multiplier = 1;
+                if (oldMaxX != oldMinX && maxX != minX) {
+                    multiplier = (maxX - minX) / (oldMaxX - oldMinX);
+                }
+                float distance = (oldMinX - offset) * multiplier - (minX - offset);
+                dragScale(distance, multiplier);
                 oldMinX = minX;
                 oldMaxX = maxX;
                 break;
@@ -130,19 +137,15 @@ public class PanBar extends View implements TimeBar {
     }
 
     private void startDragScale() {
+        initialPosition = position;
+        positionChange = 0;
         scroller.abortAnimation();
     }
 
-    private void dragScale(float min, float max, float oldMin, float oldMax) {
-        float multiplier = 1;
-        if (oldMax != oldMin && max != min) {
-            multiplier = (max - min) / (oldMax - oldMin);
-        }
-        float oldMinPosition = (oldMin - offset) / scaleFactor;
+    private void dragScale(float distance, float multiplier) {
         scaleFactor = scaleFactor * multiplier;
-        float minPosition = (min - offset) / scaleFactor;
-        float distance = oldMinPosition - minPosition;
-        position = (long) (position + distance);
+        positionChange += distance / scaleFactor;
+        position = (long) (initialPosition + positionChange);
         position = Math.max(0, position);
         position = Math.min(duration, position);
         postInvalidateOnAnimation();
