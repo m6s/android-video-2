@@ -22,7 +22,7 @@ public class PanBar extends View implements TimeBar {
     private static final int STEP_STROKE_WIDTH = 4;
     private static final int LINE_COLOR = 0xffffffff;
     private final Paint strokePaint;
-    private final int stokeHeight;
+    private final int strokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
     private final Scroller scroller;
@@ -33,6 +33,7 @@ public class PanBar extends View implements TimeBar {
     private VelocityTracker velocityTracker;
     private float oldMaxX;
     private float oldMinX;
+    private int offset;
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -52,7 +53,7 @@ public class PanBar extends View implements TimeBar {
     public PanBar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        stokeHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, displayMetrics);
+        strokeHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, displayMetrics);
         strokeInterval = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, displayMetrics);
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
@@ -137,9 +138,11 @@ public class PanBar extends View implements TimeBar {
         if (oldMax != oldMin && max != min) {
             multiplier = (max - min) / (oldMax - oldMin);
         }
+        float oldMinPosition = (oldMin - offset) / scaleFactor;
         scaleFactor = scaleFactor * multiplier;
-        float distance = min - multiplier * oldMin;
-        position = (long) (position - distance / scaleFactor);
+        float minPosition = (min - offset) / scaleFactor;
+        float distance = oldMinPosition - minPosition;
+        position = (long) (position + distance);
         position = Math.max(0, position);
         position = Math.min(duration, position);
         postInvalidateOnAnimation();
@@ -148,6 +151,7 @@ public class PanBar extends View implements TimeBar {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        offset = w / 2;
     }
 
     @Override
@@ -155,26 +159,32 @@ public class PanBar extends View implements TimeBar {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
+        int startY = (height - strokeHeight) / 2;
+        int stopY = startY + strokeHeight;
+        long indexOffset = offset / (long) (strokeInterval * scaleFactor);
         long startIndex = position / strokeInterval;
         long remainder = position % strokeInterval;
         if (remainder > 0) {
-            startIndex++;
+            startIndex--;
         }
-        for (long i = startIndex; ; i++) {
-            if (i * strokeInterval > duration) {
-                int x = (int) ((duration - position) * scaleFactor);
+        for (long i = Math.max(startIndex - indexOffset, 0); ; i++) {
+            if (i == 0) {
+                int x = (int) (-position * scaleFactor) + offset;
+                canvas.drawLine(x, 0, x, height, strokePaint);
+            } else if (i * strokeInterval > duration) {
+                int x = (int) ((duration - position) * scaleFactor) + offset;
                 if (x > width) {
                     break;
                 }
                 canvas.drawLine(x, 0, x, height, strokePaint);
                 break;
+            } else {
+                int x = (int) ((i * strokeInterval - position) * scaleFactor) + offset;
+                if (x > width) {
+                    break;
+                }
+                canvas.drawLine(x, startY, x, stopY, strokePaint);
             }
-            int x = (int) ((i * strokeInterval - position) * scaleFactor);
-            if (x > width) {
-                break;
-            }
-            int y = height - stokeHeight;
-            canvas.drawLine(x, y, x, height, strokePaint);
         }
     }
 
