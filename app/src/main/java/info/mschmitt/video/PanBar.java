@@ -191,9 +191,9 @@ public class PanBar extends View implements TimeBar {
         }
     }
 
-    public void setScaleFactor(int unit, int dimension, long millis) {
+    public void setDragTimeIncrement(long time, int unit, int dimension) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        this.scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / millis;
+        scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / time;
         invalidate();
     }
 

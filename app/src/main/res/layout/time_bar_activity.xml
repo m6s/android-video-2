@@ -7,46 +7,16 @@
         android:layout_height="match_parent"
         android:background="@android:color/white">
 
-        <FrameLayout
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/gradient_background" />
+
+        <info.mschmitt.video.PanBar
+            android:id="@+id/panBar"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_gravity="bottom"
-            android:background="#a0000000">
-
-            <info.mschmitt.video.PanBar
-                android:id="@+id/panBar"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-            <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:orientation="horizontal">-->
-            <!--<TextView-->
-            <!--android:layout_width="60dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:gravity="center"-->
-            <!--android:text="750ms"-->
-            <!--android:textColor="@android:color/white"-->
-            <!--android:textSize="10dp" />-->
-            <!--<TextView-->
-            <!--android:layout_width="60dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:gravity="center"-->
-            <!--android:text="0ms"-->
-            <!--android:textColor="@android:color/white"-->
-            <!--android:textSize="10dp" />-->
-            <!--<TextView-->
-            <!--android:layout_width="60dp"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:gravity="center"-->
-            <!--android:text="250ms"-->
-            <!--android:textColor="@android:color/white"-->
-            <!--android:textSize="10dp" />-->
-            <!--<View-->
-            <!--android:layout_width="0px"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:layout_weight="1" />-->
-            <!--</LinearLayout>-->
-        </FrameLayout>
+            android:layout_gravity="bottom" />
     </FrameLayout>
 </layout>

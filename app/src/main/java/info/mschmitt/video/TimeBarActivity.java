@@ -16,6 +16,6 @@ public class TimeBarActivity extends AppCompatActivity {
         binding.panBar.setStrokeInterval(10000);
         binding.panBar.setPosition(0);
         binding.panBar.setDuration(305700);
-        binding.panBar.setScaleFactor(TypedValue.COMPLEX_UNIT_DIP, 1, 1000);
+        binding.panBar.setDragTimeIncrement(1000, TypedValue.COMPLEX_UNIT_DIP, 1);
     }
 }
