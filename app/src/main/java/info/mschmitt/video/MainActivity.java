@@ -1,11 +1,15 @@
 package info.mschmitt.video;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
 import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -81,20 +85,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showSystemUi() {
-        binding.getRoot()
-                .setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-//                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+    private void onPreCreate(Bundle savedInstanceState) {
+        viewModel = savedInstanceState == null ? new MainViewModel()
+                : (MainViewModel) savedInstanceState.getSerializable(STATE_VIEW_MODEL);
     }
 
     private void hideSystemUi() {
+        binding.getRoot().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+    }
+
+    private void showSystemUi() {
         binding.getRoot()
-                .setSystemUiVisibility(
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-//                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+                .setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
 
     private void processIntent(Intent intent) {
@@ -110,17 +114,23 @@ public class MainActivity extends AppCompatActivity {
         preparePlayer();
     }
 
-    private void onPreCreate(Bundle savedInstanceState) {
-        viewModel = savedInstanceState == null ? new MainViewModel()
-                : (MainViewModel) savedInstanceState.getSerializable(STATE_VIEW_MODEL);
-    }
-
     private void preparePlayer() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
+            return;
+        }
         SimpleExoPlayer player = (SimpleExoPlayer) binding.exoPlayerView.getPlayer();
         DataSource.Factory dataSourceFactory =
                 new DefaultDataSourceFactory(this, Util.getUserAgent(this, "VideoApplication"));
         ExtractorMediaSource.Factory mediaSourceFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
         MediaSource mediaSource = mediaSourceFactory.createMediaSource(viewModel.uri);
+        player.addListener(new Player.DefaultEventListener() {
+            @Override
+            public void onPlayerError(ExoPlaybackException error) {
+                super.onPlayerError(error);
+            }
+        });
         player.prepare(mediaSource);
     }
 
@@ -128,16 +138,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onPostResume() {
         super.onPostResume();
         postResumed = true;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
     }
 
     @Override
@@ -191,11 +191,18 @@ public class MainActivity extends AppCompatActivity {
         player.setPlayWhenReady(viewModel.playVideoWhenForegrounded);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        preparePlayer();
+    }
+
     public static class MainViewModel extends BaseObservable implements Serializable {
         @Bindable public transient Uri uri;
+        public int controllerVisibility;
         private boolean playVideoWhenForegrounded;
         private long lastPosition;
-        public int controllerVisibility;
 
         private void writeObject(ObjectOutputStream oop) throws IOException {
             try {
