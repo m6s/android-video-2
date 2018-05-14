@@ -36,20 +36,43 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/playerMask"
-            android:orientation="vertical"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
             android:visibility="@{activity.viewModel.controllerVisibility}">
 
-            <info.mschmitt.androidsupport.views.StatusBarPlaceholderView
+            <LinearLayout
                 android:layout_width="0px"
-                android:layout_height="0px" />
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <android.support.v7.widget.Toolbar
-                android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:theme="@style/AppThemeToolbar" />
+                <info.mschmitt.androidsupport.views.StatusBarPlaceholderView
+                    android:layout_width="match_parent"
+                    android:layout_height="0px"
+                    android:background="@color/playerMask" />
+
+                <android.support.v7.widget.Toolbar
+                    android:id="@+id/toolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:background="@color/playerMask"
+                    android:theme="@style/AppThemeToolbar" />
+
+                <View
+                    android:layout_width="0px"
+                    android:layout_height="0px"
+                    android:layout_weight="1" />
+
+                <info.mschmitt.androidsupport.views.NavigationBarPlaceholderView
+                    android:layout_width="match_parent"
+                    android:layout_height="0px"
+                    android:background="@color/playerMask" />
+            </LinearLayout>
+
+            <info.mschmitt.androidsupport.views.NavigationBarPlaceholderView
+                android:layout_width="0px"
+                android:layout_height="match_parent"
+                android:background="@color/playerMask" />
         </LinearLayout>
     </FrameLayout>
 </layout>
