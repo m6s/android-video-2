@@ -171,22 +171,14 @@ public class PanBar extends View implements TimeBar {
             startIndex--;
         }
         for (long i = Math.max(startIndex - indexOffset, 0); ; i++) {
-            if (i == 0) {
-                int x = (int) (-position * scaleFactor) + offset;
-                canvas.drawLine(x, 0, x, height, strokePaint);
-            } else if (i * strokeInterval > duration) {
-                int x = (int) ((duration - position) * scaleFactor) + offset;
-                if (x > width) {
-                    break;
-                }
-                canvas.drawLine(x, 0, x, height, strokePaint);
+            long j = Math.max(0, Math.min(duration, i * strokeInterval));
+            int x = (int) ((j - position) * scaleFactor) + offset;
+            if (x > width) {
                 break;
-            } else {
-                int x = (int) ((i * strokeInterval - position) * scaleFactor) + offset;
-                if (x > width) {
-                    break;
-                }
-                canvas.drawLine(x, startY, x, stopY, strokePaint);
+            }
+            canvas.drawLine(x, startY, x, stopY, strokePaint);
+            if (j == duration) {
+                break;
             }
         }
     }
