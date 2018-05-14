@@ -12,8 +12,7 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/black">
+        android:layout_height="match_parent">
 
         <com.google.android.exoplayer2.ui.PlayerView
             android:id="@+id/exoPlayerView"
@@ -31,8 +30,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:textColor="@android:color/white"
-                android:text="Video Player" />
+                android:text="Video Player"
+                android:textColor="@android:color/white" />
         </FrameLayout>
 
         <LinearLayout
@@ -42,7 +41,7 @@
             android:orientation="vertical"
             android:visibility="@{activity.viewModel.controllerVisibility}">
 
-            <info.mschmitt.support.views.StatusBarPlaceholderView
+            <info.mschmitt.androidsupport.views.StatusBarPlaceholderView
                 android:layout_width="0px"
                 android:layout_height="0px" />
 

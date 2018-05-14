@@ -19,10 +19,9 @@ import com.google.android.exoplayer2.ui.TimeBar;
  * @author Matthias Schmitt
  */
 public class PanBar extends View implements TimeBar {
-    private static final int STEP_STROKE_WIDTH = 4;
     private static final int LINE_COLOR = 0xffffffff;
     private final Paint strokePaint;
-    private final int strokeHeight;
+    //    private final int strokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
     private final Scroller scroller;
@@ -39,9 +38,10 @@ public class PanBar extends View implements TimeBar {
 
     {
         strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(STEP_STROKE_WIDTH);
+        strokePaint.setStyle(Paint.Style.FILL);
+        strokePaint.setStrokeWidth(0);
         strokePaint.setColor(LINE_COLOR);
+        strokePaint.setStrokeCap(Paint.Cap.ROUND);
     }
 
     public PanBar(Context context) {
@@ -55,8 +55,8 @@ public class PanBar extends View implements TimeBar {
     public PanBar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        strokeHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, displayMetrics);
-        strokeInterval = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, displayMetrics);
+        int strokeWidth = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, displayMetrics);
+        strokePaint.setStrokeWidth(strokeWidth);
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
@@ -162,21 +162,25 @@ public class PanBar extends View implements TimeBar {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
-        int startY = (height - strokeHeight) / 2;
-        int stopY = startY + strokeHeight;
         long indexOffset = offset / (long) (strokeInterval * scaleFactor);
         long startIndex = position / strokeInterval;
         long remainder = position % strokeInterval;
         if (remainder > 0) {
             startIndex--;
         }
-        for (long i = Math.max(startIndex - indexOffset, 0); ; i++) {
+        long first = Math.max(startIndex - indexOffset, 0);
+        if (first % 2 == 1) {
+            first--;
+        }
+        for (long i = first; ; i += 2) {
             long j = Math.max(0, Math.min(duration, i * strokeInterval));
-            int x = (int) ((j - position) * scaleFactor) + offset;
-            if (x > width) {
+            long stopJ = Math.min(duration, j + strokeInterval);
+            int startX = (int) ((j - position) * scaleFactor) + offset;
+            int stopX = (int) ((stopJ - position) * scaleFactor) + offset;
+            if (startX > width) {
                 break;
             }
-            canvas.drawLine(x, startY, x, stopY, strokePaint);
+            canvas.drawLine(startX, height / 2, stopX, height / 2, strokePaint);
             if (j == duration) {
                 break;
             }
@@ -186,11 +190,6 @@ public class PanBar extends View implements TimeBar {
     public void setDragTimeIncrement(long time, int unit, int dimension) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / time;
-        invalidate();
-    }
-
-    public void setStrokeInterval(long strokeInterval) {
-        this.strokeInterval = strokeInterval;
         invalidate();
     }
 
@@ -225,6 +224,7 @@ public class PanBar extends View implements TimeBar {
 
     @Override
     public void setDuration(long duration) {
+        this.strokeInterval = 500;
         this.duration = duration;
         invalidate();
     }

@@ -13,9 +13,8 @@ public class PanBarActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = DataBindingUtil.setContentView(this, R.layout.pan_bar_activity);
-        binding.panBar.setStrokeInterval(10000);
+        binding.panBar.setDragTimeIncrement(500, TypedValue.COMPLEX_UNIT_DIP, 100);
         binding.panBar.setPosition(0);
         binding.panBar.setDuration(305700);
-        binding.panBar.setDragTimeIncrement(1000, TypedValue.COMPLEX_UNIT_DIP, 1);
     }
 }

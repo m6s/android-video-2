@@ -7,10 +7,12 @@ import android.databinding.BaseObservable;
 import android.databinding.Bindable;
 import android.databinding.DataBindingUtil;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -36,6 +38,7 @@ import java.io.Serializable;
 
 public class MainActivity extends AppCompatActivity {
     private static final String STATE_VIEW_MODEL = "VIEW_MODEL";
+    private static final String TAG = "X";
     public MainViewModel viewModel;
     private boolean postResumed;
     private MainActivityBinding binding;
@@ -53,9 +56,9 @@ public class MainActivity extends AppCompatActivity {
             viewModel.controllerVisibility = visibility;
             viewModel.notifyChange();
             if (visibility == View.VISIBLE) {
-                hideSystemUi();
-            } else {
                 showSystemUi();
+            } else {
+                hideSystemUi();
             }
         });
         View decorView = getWindow().getDecorView();
@@ -91,14 +94,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hideSystemUi() {
-        binding.getRoot().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        Log.d(TAG, "hideSystemUi: ");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            binding.getRoot()
+                    .setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
     }
 
     private void showSystemUi() {
+        Log.d(TAG, "showSystemUi: ");
         binding.getRoot()
-                .setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+                .setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
     private void processIntent(Intent intent) {

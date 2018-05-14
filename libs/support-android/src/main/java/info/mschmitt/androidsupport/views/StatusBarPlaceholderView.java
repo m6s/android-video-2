@@ -1,4 +1,4 @@
-package info.mschmitt.support.views;
+package info.mschmitt.androidsupport.views;
 
 import android.annotation.TargetApi;
 import android.content.Context;
