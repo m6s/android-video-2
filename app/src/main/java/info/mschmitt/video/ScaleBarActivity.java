@@ -6,27 +6,26 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.TypedValue;
 import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.util.Util;
-import info.mschmitt.video.databinding.PanBarActivityBinding;
+import info.mschmitt.video.databinding.ScaleBarActivityBinding;
 
 import java.util.Formatter;
 import java.util.Locale;
 
-public class PanBarActivity extends AppCompatActivity {
+public class ScaleBarActivity extends AppCompatActivity {
     static final int DURATION = 305700;
-    private PanBarActivityBinding binding;
+    private ScaleBarActivityBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         StringBuilder formatBuilder = new StringBuilder();
         Formatter formatter = new Formatter(formatBuilder, Locale.getDefault());
-
-        binding = DataBindingUtil.setContentView(this, R.layout.pan_bar_activity);
-        binding.panBar.setDragTimeIncrement(500, TypedValue.COMPLEX_UNIT_DIP, 100);
-        binding.panBar.setPosition(0);
-        binding.panBar.setDuration(DURATION);
-        binding.pbPositionView.setText(Util.getStringForTime(formatBuilder, formatter, 0));
-        binding.pbDurationView.setText(Util.getStringForTime(formatBuilder, formatter, DURATION));
+        binding = DataBindingUtil.setContentView(this, R.layout.scale_bar_activity);
+        binding.scaleBar.setDragTimeIncrement(500, TypedValue.COMPLEX_UNIT_DIP, 100);
+        binding.scaleBar.setPosition(0);
+        binding.scaleBar.setDuration(DURATION);
+        binding.sbPositionView.setText(Util.getStringForTime(formatBuilder, formatter, 0));
+        binding.sbDurationView.setText(Util.getStringForTime(formatBuilder, formatter, DURATION));
         binding.timeBar.setPosition(0);
         binding.timeBar.setDuration(DURATION);
         binding.tbPositionView.setText(Util.getStringForTime(formatBuilder, formatter, 0));
@@ -50,6 +49,6 @@ public class PanBarActivity extends AppCompatActivity {
             }
         };
         binding.timeBar.addListener(onScrubListener);
-        binding.panBar.addListener(onScrubListener);
+        binding.scaleBar.addListener(onScrubListener);
     }
 }

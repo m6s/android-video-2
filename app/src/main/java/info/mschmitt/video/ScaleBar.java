@@ -8,17 +8,16 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
-import android.view.MotionEvent;
-import android.view.VelocityTracker;
-import android.view.View;
-import android.view.ViewConfiguration;
+import android.view.*;
 import android.widget.Scroller;
 import com.google.android.exoplayer2.ui.TimeBar;
+
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Matthias Schmitt
  */
-public class PanBar extends View implements TimeBar {
+public class ScaleBar extends View implements TimeBar {
     private static final int DEFAULT_INTERVAL_COLOR = 0xffffffff;
     private static final int DEFAULT_BAR_HEIGHT_DP = 4;
     private static final int DEFAULT_DRAGGED_BAR_HEIGHT_DP = 6;
@@ -30,6 +29,7 @@ public class PanBar extends View implements TimeBar {
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
     private final Scroller scroller;
+    private final CopyOnWriteArrayList<OnScrubListener> listeners = new CopyOnWriteArrayList<>();
     private long interval;
     private long position;
     private long duration;
@@ -40,7 +40,8 @@ public class PanBar extends View implements TimeBar {
     private int offset;
     private long initialPosition;
     private float positionChange;
-    private boolean touching;
+    private boolean scrubbing;
+    private boolean flinging;
 
     {
         intervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -53,15 +54,15 @@ public class PanBar extends View implements TimeBar {
         emptyPaint.setColor(emptyColor);
     }
 
-    public PanBar(Context context) {
+    public ScaleBar(Context context) {
         this(context, null, 0);
     }
 
-    public PanBar(Context context, @Nullable AttributeSet attrs) {
+    public ScaleBar(Context context, @Nullable AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public PanBar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public ScaleBar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int barHeight =
@@ -103,14 +104,18 @@ public class PanBar extends View implements TimeBar {
         }
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                touching = true;
+                scrubbing = true;
                 if (velocityTracker == null) {
                     velocityTracker = VelocityTracker.obtain();
                 }
                 velocityTracker.addMovement(event);
                 oldMinX = minX;
                 oldMaxX = maxX;
-                startDragScale();
+                if (flinging) {
+                    flinging = false;
+                    scroller.abortAnimation();
+                }
+                startDragging();
                 break;
             case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
@@ -129,10 +134,12 @@ public class PanBar extends View implements TimeBar {
                 velocityTracker.addMovement(event);
                 velocityTracker.computeCurrentVelocity(1000);
                 float velocityX = velocityTracker.getXVelocity();
-                fling(velocityX);
                 velocityTracker.recycle();
                 velocityTracker = null;
-                touching = false;
+                fling(velocityX);
+                if (!flinging) {
+                    stopDragging(action == MotionEvent.ACTION_CANCEL);
+                }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 break;
@@ -148,6 +155,7 @@ public class PanBar extends View implements TimeBar {
         }
         velocityX =
                 velocityX > 0 ? Math.min(maximumFlingVelocity, velocityX) : -Math.min(maximumFlingVelocity, -velocityX);
+        flinging = true;
         scroller.fling((int) (position * scaleFactor), 0, (int) -velocityX, 0, 0, (int) (duration * scaleFactor), 0, 0);
         postOnAnimation(this::updateFromScroller);
     }
@@ -156,15 +164,35 @@ public class PanBar extends View implements TimeBar {
         if (scroller.computeScrollOffset()) {
             int currX = scroller.getCurrX();
             position = (long) (currX / scaleFactor);
+            notifyScrubMove();
             invalidate();
             postOnAnimation(this::updateFromScroller);
+        } else if (flinging && scroller.isFinished()) {
+            flinging = false;
+            stopDragging(false);
         }
     }
 
-    private void startDragScale() {
+    private void startDragging() {
         initialPosition = position;
         positionChange = 0;
-        scroller.abortAnimation();
+        scrubbing = true;
+        setPressed(true);
+        ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(true);
+        }
+        notifyScrubStart();
+        postInvalidateOnAnimation();
+    }
+
+    private void notifyScrubStart() {
+        for (OnScrubListener listener : listeners) {
+            if (!listeners.contains(listener)) {
+                continue;
+            }
+            listener.onScrubStart(this, position);
+        }
     }
 
     private void dragScale(float distance, float multiplier) {
@@ -173,7 +201,37 @@ public class PanBar extends View implements TimeBar {
         position = (long) (initialPosition + positionChange);
         position = Math.max(0, position);
         position = Math.min(duration, position);
+        notifyScrubMove();
         postInvalidateOnAnimation();
+    }
+
+    private void notifyScrubMove() {
+        for (OnScrubListener listener : listeners) {
+            if (!listeners.contains(listener)) {
+                continue;
+            }
+            listener.onScrubMove(this, position);
+        }
+    }
+
+    private void stopDragging(boolean canceled) {
+        scrubbing = false;
+        setPressed(false);
+        ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(false);
+        }
+        notifyScrubStop(canceled);
+        postInvalidateOnAnimation();
+    }
+
+    private void notifyScrubStop(boolean canceled) {
+        for (OnScrubListener listener : listeners) {
+            if (!listeners.contains(listener)) {
+                continue;
+            }
+            listener.onScrubStop(this, position, canceled);
+        }
     }
 
     @Override
@@ -187,7 +245,7 @@ public class PanBar extends View implements TimeBar {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
-        canvas.drawLine(0, height / 2, width, height / 2, touching ? draggedEmptyPaint : emptyPaint);
+        canvas.drawLine(0, height / 2, width, height / 2, scrubbing ? draggedEmptyPaint : emptyPaint);
         long indexOffset = offset / (long) (interval * scaleFactor);
         long startIndex = position / interval;
         long remainder = position % interval;
@@ -206,7 +264,7 @@ public class PanBar extends View implements TimeBar {
             if (startX > width) {
                 break;
             }
-            canvas.drawLine(startX, height / 2, stopX, height / 2, touching ? draggedIntervalPaint : intervalPaint);
+            canvas.drawLine(startX, height / 2, stopX, height / 2, scrubbing ? draggedIntervalPaint : intervalPaint);
             if (j == duration) {
                 break;
             }
@@ -221,10 +279,12 @@ public class PanBar extends View implements TimeBar {
 
     @Override
     public void addListener(OnScrubListener listener) {
+        listeners.add(listener);
     }
 
     @Override
     public void removeListener(OnScrubListener listener) {
+        listeners.remove(listener);
     }
 
     @Override

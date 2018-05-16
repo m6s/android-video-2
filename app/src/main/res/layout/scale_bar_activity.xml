@@ -75,7 +75,7 @@
             android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/pbPositionView"
+                android:id="@+id/sbPositionView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"
@@ -85,14 +85,14 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <info.mschmitt.video.PanBar
-                android:id="@+id/panBar"
+            <info.mschmitt.video.ScaleBar
+                android:id="@+id/scaleBar"
                 android:layout_width="0dp"
                 android:layout_height="26dp"
                 android:layout_weight="1" />
 
             <TextView
-                android:id="@+id/pbDurationView"
+                android:id="@+id/sbDurationView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:includeFontPadding="false"

@@ -57,7 +57,7 @@
             android:exported="true"
             android:label="Video Player Test" />
         <activity
-            android:name=".PanBarActivity"
+            android:name=".ScaleBarActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:label="Time Bar Test" />
