@@ -4,6 +4,7 @@ import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.TypedValue;
+import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.util.Util;
 import info.mschmitt.video.databinding.PanBarActivityBinding;
 
@@ -30,5 +31,25 @@ public class PanBarActivity extends AppCompatActivity {
         binding.timeBar.setDuration(DURATION);
         binding.tbPositionView.setText(Util.getStringForTime(formatBuilder, formatter, 0));
         binding.tbDurationView.setText(Util.getStringForTime(formatBuilder, formatter, DURATION));
+        TimeBar.OnScrubListener onScrubListener = new TimeBar.OnScrubListener() {
+            @Override
+            public void onScrubStart(TimeBar timeBar, long position) {
+                binding.startTextView.setText(String.valueOf(position));
+                binding.moveTextView.setText("");
+                binding.stopTextView.setText("");
+            }
+
+            @Override
+            public void onScrubMove(TimeBar timeBar, long position) {
+                binding.moveTextView.setText(String.valueOf(position));
+            }
+
+            @Override
+            public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
+                binding.stopTextView.setText(String.valueOf(position) + " " + canceled);
+            }
+        };
+        binding.timeBar.addListener(onScrubListener);
+        binding.panBar.addListener(onScrubListener);
     }
 }

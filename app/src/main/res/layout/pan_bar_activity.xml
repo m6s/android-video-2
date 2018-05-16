@@ -9,9 +9,19 @@
         android:orientation="vertical">
 
         <TextView
+            android:id="@+id/startTextView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Test" />
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/moveTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/stopTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
         <View
             android:layout_width="match_parent"
