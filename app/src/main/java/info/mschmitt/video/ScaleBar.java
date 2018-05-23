@@ -21,6 +21,7 @@ public class ScaleBar extends View implements TimeBar {
     private static final int DEFAULT_INTERVAL_COLOR = 0xffffffff;
     private static final int DEFAULT_BAR_HEIGHT_DP = 4;
     private static final int DEFAULT_DRAGGED_BAR_HEIGHT_DP = 6;
+    private static final String TAG = "X";
     private final Paint baseIntervalPaint;
     private final Paint baseEmptyPaint;
     private final Paint baseDraggedIntervalPaint;
