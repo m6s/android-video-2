@@ -21,7 +21,7 @@ public class ScaleBarActivity extends AppCompatActivity {
         StringBuilder formatBuilder = new StringBuilder();
         Formatter formatter = new Formatter(formatBuilder, Locale.getDefault());
         binding = DataBindingUtil.setContentView(this, R.layout.scale_bar_activity);
-        binding.scaleBar.setInterval(500, TypedValue.COMPLEX_UNIT_DIP, 100);
+        binding.scaleBar.setDragTimeIncrement(500, TypedValue.COMPLEX_UNIT_DIP, 100);
         binding.scaleBar.setPosition(0);
         binding.scaleBar.setDuration(DURATION);
         binding.sbPositionView.setText(Util.getStringForTime(formatBuilder, formatter, 0));
@@ -50,30 +50,5 @@ public class ScaleBarActivity extends AppCompatActivity {
         };
         binding.timeBar.addListener(onScrubListener);
         binding.scaleBar.addListener(onScrubListener);
-        binding.scaleBar.addListener(new TimeBar.OnScrubListener() {
-            @Override
-            public void onScrubStart(TimeBar timeBar, long position) {
-            }
-
-            @Override
-            public void onScrubMove(TimeBar timeBar, long position) {
-            }
-
-            @Override
-            public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
-                long intervalMillis = binding.scaleBar.getIntervalMillis();
-                int intervalDp = binding.scaleBar.getIntervalDimension(TypedValue.COMPLEX_UNIT_DIP);
-                if (intervalDp > 160) {
-                    intervalMillis = intervalMillis * 100 / intervalDp;
-                    intervalDp = 100;
-                    binding.scaleBar.setInterval(intervalMillis, TypedValue.COMPLEX_UNIT_DIP, intervalDp);
-                }
-                if (intervalDp < 20) {
-                    intervalMillis = intervalMillis * 100 / intervalDp;
-                    intervalDp = 100;
-                    binding.scaleBar.setInterval(intervalMillis, TypedValue.COMPLEX_UNIT_DIP, intervalDp);
-                }
-            }
-        });
     }
 }

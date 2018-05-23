@@ -21,16 +21,16 @@ public class ScaleBar extends View implements TimeBar {
     private static final int DEFAULT_INTERVAL_COLOR = 0xffffffff;
     private static final int DEFAULT_BAR_HEIGHT_DP = 4;
     private static final int DEFAULT_DRAGGED_BAR_HEIGHT_DP = 6;
-    private final Paint intervalPaint;
-    private final Paint emptyPaint;
-    private final Paint draggedIntervalPaint;
-    private final Paint draggedEmptyPaint;
+    private final Paint baseIntervalPaint;
+    private final Paint baseEmptyPaint;
+    private final Paint baseDraggedIntervalPaint;
+    private final Paint baseDraggedEmptyPaint;
     //    private final int strokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
     private final Scroller scroller;
     private final CopyOnWriteArrayList<OnScrubListener> listeners = new CopyOnWriteArrayList<>();
-    private long interval;
+    private final Paint paint = new Paint();
     private long position;
     private long duration;
     private float scaleFactor;
@@ -44,14 +44,14 @@ public class ScaleBar extends View implements TimeBar {
     private boolean flinging;
 
     {
-        intervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        intervalPaint.setStyle(Paint.Style.FILL);
-        intervalPaint.setStrokeWidth(0);
-        intervalPaint.setColor(DEFAULT_INTERVAL_COLOR);
-        intervalPaint.setStrokeCap(Paint.Cap.ROUND);
+        baseIntervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        baseIntervalPaint.setStyle(Paint.Style.FILL);
+        baseIntervalPaint.setStrokeWidth(0);
+        baseIntervalPaint.setColor(DEFAULT_INTERVAL_COLOR);
+        baseIntervalPaint.setStrokeCap(Paint.Cap.ROUND);
         int emptyColor = getDefaultEmptyColor(DEFAULT_INTERVAL_COLOR);
-        emptyPaint = new Paint(intervalPaint);
-        emptyPaint.setColor(emptyColor);
+        baseEmptyPaint = new Paint(baseIntervalPaint);
+        baseEmptyPaint.setColor(emptyColor);
     }
 
     public ScaleBar(Context context) {
@@ -67,16 +67,16 @@ public class ScaleBar extends View implements TimeBar {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int barHeight =
                 (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_BAR_HEIGHT_DP, displayMetrics);
-        intervalPaint.setStrokeWidth(barHeight);
-        emptyPaint.setStrokeWidth(barHeight);
+        baseIntervalPaint.setStrokeWidth(barHeight);
+        baseEmptyPaint.setStrokeWidth(barHeight);
         int draggedBarHeight =
                 (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, DEFAULT_DRAGGED_BAR_HEIGHT_DP,
                         displayMetrics);
-        draggedIntervalPaint = new Paint(intervalPaint);
-        draggedIntervalPaint.setStrokeWidth(draggedBarHeight);
-        draggedEmptyPaint = new Paint(emptyPaint);
-        draggedEmptyPaint.setStrokeWidth(draggedBarHeight);
-        emptyPaint.setStrokeWidth(barHeight);
+        baseDraggedIntervalPaint = new Paint(baseIntervalPaint);
+        baseDraggedIntervalPaint.setStrokeWidth(draggedBarHeight);
+        baseDraggedEmptyPaint = new Paint(baseEmptyPaint);
+        baseDraggedEmptyPaint.setStrokeWidth(draggedBarHeight);
+        baseEmptyPaint.setStrokeWidth(barHeight);
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
@@ -245,7 +245,25 @@ public class ScaleBar extends View implements TimeBar {
         super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
-        canvas.drawLine(0, height / 2, width, height / 2, scrubbing ? draggedEmptyPaint : emptyPaint);
+        paint.set(scrubbing ? baseDraggedEmptyPaint : baseEmptyPaint);
+        canvas.drawLine(0, height / 2, width, height / 2, paint);
+        long coveredDuration = (long) (width / scaleFactor);
+        long interval;
+        if (coveredDuration < 1000) {
+            interval = 250;
+        } else if (coveredDuration > 1000 && coveredDuration < 2000) {
+            interval = 500;
+        } else if (coveredDuration < 4000) {
+            interval = 1000;
+        } else if (coveredDuration < 8000) {
+            interval = 2000;
+        } else if (coveredDuration < 16000) {
+            interval = 4000;
+        } else if (coveredDuration < 32000) {
+            interval = 8000;
+        } else {
+            interval = 16000;
+        }
         long indexOffset = offset / (long) (interval * scaleFactor);
         long startIndex = position / interval;
         long remainder = position % interval;
@@ -256,6 +274,8 @@ public class ScaleBar extends View implements TimeBar {
         if (first % 2 == 1) {
             first--;
         }
+        paint.set(scrubbing ? baseDraggedIntervalPaint : baseIntervalPaint);
+        paint.setAlpha(0xFF);
         for (long i = first; ; i += 2) {
             long j = Math.max(0, Math.min(duration, i * interval));
             long stopJ = Math.min(duration, j + interval);
@@ -264,7 +284,7 @@ public class ScaleBar extends View implements TimeBar {
             if (startX > width) {
                 break;
             }
-            canvas.drawLine(startX, height / 2, stopX, height / 2, scrubbing ? draggedIntervalPaint : intervalPaint);
+            canvas.drawLine(startX, height / 2, stopX, height / 2, paint);
             if (j == duration) {
                 break;
             }
@@ -305,25 +325,14 @@ public class ScaleBar extends View implements TimeBar {
     @Override
     public void setDuration(long duration) {
         this.duration = duration;
-        setInterval(500, TypedValue.COMPLEX_UNIT_DIP, 100);
+        setDragTimeIncrement(500, TypedValue.COMPLEX_UNIT_DIP, 100);
         invalidate();
     }
 
-    public void setInterval(long intervalMillis, int unit, int dimension) {
+    public void setDragTimeIncrement(long time, int unit, int dimension) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / intervalMillis;
-        this.interval = intervalMillis;
+        scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / time;
         invalidate();
-    }
-
-    public int getIntervalDimension(int unit) {
-        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        float v = TypedValue.applyDimension(unit, 1, displayMetrics);
-        return (int) (scaleFactor * interval / v);
-    }
-
-    public long getIntervalMillis() {
-        return interval;
     }
 
     @Override
