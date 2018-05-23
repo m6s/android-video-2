@@ -250,19 +250,19 @@ public class ScaleBar extends View implements TimeBar {
         long coveredDuration = (long) (width / scaleFactor);
         long interval;
         if (coveredDuration < 1000) {
-            interval = 250;
+            interval = 125;
         } else if (coveredDuration > 1000 && coveredDuration < 2000) {
-            interval = 500;
+            interval = 250;
         } else if (coveredDuration < 4000) {
-            interval = 1000;
+            interval = 500;
         } else if (coveredDuration < 8000) {
-            interval = 2000;
+            interval = 1000;
         } else if (coveredDuration < 16000) {
-            interval = 4000;
+            interval = 2000;
         } else if (coveredDuration < 32000) {
-            interval = 8000;
+            interval = 4000;
         } else {
-            interval = 16000;
+            interval = 8000;
         }
         long indexOffset = offset / (long) (interval * scaleFactor);
         long startIndex = position / interval;
