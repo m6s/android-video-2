@@ -271,12 +271,6 @@ public class ScaleBar extends View implements TimeBar {
         }
     }
 
-    public void setDragTimeIncrement(long time, int unit, int dimension) {
-        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / time;
-        invalidate();
-    }
-
     @Override
     public void addListener(OnScrubListener listener) {
         listeners.add(listener);
@@ -310,9 +304,26 @@ public class ScaleBar extends View implements TimeBar {
 
     @Override
     public void setDuration(long duration) {
-        this.interval = 500;
         this.duration = duration;
+        setInterval(500, TypedValue.COMPLEX_UNIT_DIP, 100);
         invalidate();
+    }
+
+    public void setInterval(long intervalMillis, int unit, int dimension) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / intervalMillis;
+        this.interval = intervalMillis;
+        invalidate();
+    }
+
+    public int getIntervalDimension(int unit) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float v = TypedValue.applyDimension(unit, 1, displayMetrics);
+        return (int) (scaleFactor * interval / v);
+    }
+
+    public long getIntervalMillis() {
+        return interval;
     }
 
     @Override
