@@ -7,10 +7,8 @@ import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.*;
-import android.widget.Scroller;
 import com.google.android.exoplayer2.ui.TimeBar;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -30,7 +28,7 @@ public class ScaleBar extends View implements TimeBar {
     //    private final int strokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
-    private final Scroller scroller;
+    private final Scaler scroller;
     private final CopyOnWriteArrayList<OnScrubListener> listeners = new CopyOnWriteArrayList<>();
     private final Paint paint = new Paint();
     private long position;
@@ -83,7 +81,7 @@ public class ScaleBar extends View implements TimeBar {
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
-        scroller = new Scroller(getContext());
+        scroller = new Scaler(getContext());
     }
 
     public static int getDefaultEmptyColor(int playedColor) {
@@ -162,24 +160,21 @@ public class ScaleBar extends View implements TimeBar {
     }
 
     private boolean fling(float primaryVelocity, float secondaryVelocity) {
-        Log.d(TAG, "fling: " + primaryVelocity + " " + secondaryVelocity);
         if (Math.abs(primaryVelocity) <= minimumFlingVelocity && Math.abs(secondaryVelocity) <= minimumFlingVelocity) {
             return false;
         }
         primaryVelocity = primaryVelocity > 0 ? Math.min(maximumFlingVelocity, primaryVelocity)
                 : -Math.min(maximumFlingVelocity, -primaryVelocity);
-        scroller.fling((int) (position * scaleFactor), 0, (int) -primaryVelocity, 0, 0, (int) (duration * scaleFactor),
-                0, 0);
+        scroller.fling((int) primaryVelocity);
         postOnAnimation(this::updateFromScroller);
         return true;
     }
 
     private void updateFromScroller() {
         if (scroller.computeScrollOffset()) {
-            int currX = scroller.getCurrX();
-            position = (long) (currX / scaleFactor);
-            notifyScrubMove();
-            invalidate();
+            float distance = scroller.getDistance();
+            float multiplier = scroller.getMultiplier();
+            dragScale(distance, multiplier);
             postOnAnimation(this::updateFromScroller);
         } else if (flinging && scroller.isFinished()) {
             flinging = false;
