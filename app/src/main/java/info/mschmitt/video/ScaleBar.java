@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.*;
 import android.widget.Scroller;
@@ -43,6 +44,7 @@ public class ScaleBar extends View implements TimeBar {
     private float positionChange;
     private boolean scrubbing;
     private boolean flinging;
+    private float secondaryVelocity;
 
     {
         baseIntervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -106,6 +108,7 @@ public class ScaleBar extends View implements TimeBar {
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 scrubbing = true;
+                secondaryVelocity = 0;
                 if (velocityTracker == null) {
                     velocityTracker = VelocityTracker.obtain();
                 }
@@ -130,19 +133,27 @@ public class ScaleBar extends View implements TimeBar {
                 oldMaxX = maxX;
                 break;
             }
-            case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                velocityTracker.addMovement(event);
-                velocityTracker.computeCurrentVelocity(1000);
-                float velocityX = velocityTracker.getXVelocity();
                 velocityTracker.recycle();
                 velocityTracker = null;
-                fling(velocityX);
+                stopDragging(true);
+                break;
+            case MotionEvent.ACTION_UP:
+                velocityTracker.addMovement(event);
+                velocityTracker.computeCurrentVelocity(1000);
+                int primaryPointerId = event.getPointerId(index);
+                float primaryVelocity = velocityTracker.getXVelocity(primaryPointerId);
+                velocityTracker.recycle();
+                velocityTracker = null;
+                flinging = fling(primaryVelocity, secondaryVelocity);
                 if (!flinging) {
-                    stopDragging(action == MotionEvent.ACTION_CANCEL);
+                    stopDragging(false);
                 }
                 break;
             case MotionEvent.ACTION_POINTER_UP:
+                int secondaryPointerId = event.getPointerId(index);
+                velocityTracker.computeCurrentVelocity(1000);
+                secondaryVelocity = velocityTracker.getXVelocity(secondaryPointerId);
                 break;
         }
         oldMaxX = maxX;
@@ -150,15 +161,17 @@ public class ScaleBar extends View implements TimeBar {
         return true;
     }
 
-    private void fling(float velocityX) {
-        if (Math.abs(velocityX) <= minimumFlingVelocity) {
-            return;
+    private boolean fling(float primaryVelocity, float secondaryVelocity) {
+        Log.d(TAG, "fling: " + primaryVelocity + " " + secondaryVelocity);
+        if (Math.abs(primaryVelocity) <= minimumFlingVelocity && Math.abs(secondaryVelocity) <= minimumFlingVelocity) {
+            return false;
         }
-        velocityX =
-                velocityX > 0 ? Math.min(maximumFlingVelocity, velocityX) : -Math.min(maximumFlingVelocity, -velocityX);
-        flinging = true;
-        scroller.fling((int) (position * scaleFactor), 0, (int) -velocityX, 0, 0, (int) (duration * scaleFactor), 0, 0);
+        primaryVelocity = primaryVelocity > 0 ? Math.min(maximumFlingVelocity, primaryVelocity)
+                : -Math.min(maximumFlingVelocity, -primaryVelocity);
+        scroller.fling((int) (position * scaleFactor), 0, (int) -primaryVelocity, 0, 0, (int) (duration * scaleFactor),
+                0, 0);
         postOnAnimation(this::updateFromScroller);
+        return true;
     }
 
     private void updateFromScroller() {
