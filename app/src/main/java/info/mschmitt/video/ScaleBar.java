@@ -305,7 +305,7 @@ public class ScaleBar extends View implements TimeBar {
         } else {
             interval = 8000;
         }
-        long indexOffset = offset / (long) (interval * scaleFactor);
+        long indexOffset = (long) (offset / interval * scaleFactor);
         long startIndex = position / interval;
         long remainder = position % interval;
         if (remainder > 0) {
