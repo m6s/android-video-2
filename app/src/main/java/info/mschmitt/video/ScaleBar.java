@@ -7,8 +7,10 @@ import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.*;
+import android.widget.Scroller;
 import com.google.android.exoplayer2.ui.TimeBar;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,7 +30,8 @@ public class ScaleBar extends View implements TimeBar {
     //    private final int strokeHeight;
     private final int minimumFlingVelocity;
     private final int maximumFlingVelocity;
-    private final Scaler scroller;
+    private final Scroller pScroller;
+    private final Scroller sScroller;
     private final CopyOnWriteArrayList<OnScrubListener> listeners = new CopyOnWriteArrayList<>();
     private final Paint paint = new Paint();
     private long position;
@@ -41,8 +44,6 @@ public class ScaleBar extends View implements TimeBar {
     private long initialPosition;
     private float positionChange;
     private boolean scrubbing;
-    private boolean flinging;
-    private float secondaryVelocity;
 
     {
         baseIntervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -81,7 +82,8 @@ public class ScaleBar extends View implements TimeBar {
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
-        scroller = new Scaler(getContext());
+        pScroller = new Scroller(getContext());
+        sScroller = new Scroller(getContext());
     }
 
     public static int getDefaultEmptyColor(int playedColor) {
@@ -94,7 +96,7 @@ public class ScaleBar extends View implements TimeBar {
         int action = event.getActionMasked();
         int pointerCount = event.getPointerCount();
         int index = event.getActionIndex();
-        float maxX = Float.MIN_VALUE;
+        float maxX = -Float.MAX_VALUE;
         float minX = Float.MAX_VALUE;
         for (int i = 0; i < pointerCount; i++) {
             if (action == MotionEvent.ACTION_POINTER_UP && i == index) {
@@ -103,21 +105,28 @@ public class ScaleBar extends View implements TimeBar {
             maxX = Math.max(maxX, event.getX(i));
             minX = Math.min(minX, event.getX(i));
         }
+        if (sScroller.computeScrollOffset()) {
+            int currX = sScroller.getCurrX();
+            maxX = Math.max(maxX, currX);
+            minX = Math.min(minX, currX);
+        }
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 scrubbing = true;
-                secondaryVelocity = 0;
                 if (velocityTracker == null) {
                     velocityTracker = VelocityTracker.obtain();
                 }
                 velocityTracker.addMovement(event);
                 oldMinX = minX;
                 oldMaxX = maxX;
-                if (flinging) {
-                    flinging = false;
-                    scroller.abortAnimation();
-                }
+                pScroller.abortAnimation();
                 startDragging();
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                if (event.getPointerCount() > 2) {
+                    break;
+                }
+                sScroller.abortAnimation();
                 break;
             case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
@@ -141,17 +150,23 @@ public class ScaleBar extends View implements TimeBar {
                 velocityTracker.computeCurrentVelocity(1000);
                 int primaryPointerId = event.getPointerId(index);
                 float primaryVelocity = velocityTracker.getXVelocity(primaryPointerId);
+                float primaryX = event.getX(index);
+                fling(primaryX, primaryVelocity, pScroller);
+                stopDragging(false);
                 velocityTracker.recycle();
                 velocityTracker = null;
-                flinging = fling(primaryVelocity, secondaryVelocity);
-                if (!flinging) {
-                    stopDragging(false);
-                }
+                updateFromScroller();
                 break;
             case MotionEvent.ACTION_POINTER_UP:
-                int secondaryPointerId = event.getPointerId(index);
+                if (event.getPointerCount() > 2) {
+                    break;
+                }
+                velocityTracker.addMovement(event);
                 velocityTracker.computeCurrentVelocity(1000);
-                secondaryVelocity = velocityTracker.getXVelocity(secondaryPointerId);
+                int secondaryPointerId = event.getPointerId(index);
+                float secondaryVelocity = velocityTracker.getXVelocity(secondaryPointerId);
+                float secondaryX = event.getX(index);
+                fling(secondaryX, secondaryVelocity, sScroller);
                 break;
         }
         oldMaxX = maxX;
@@ -159,25 +174,42 @@ public class ScaleBar extends View implements TimeBar {
         return true;
     }
 
-    private boolean fling(float primaryVelocity, float secondaryVelocity) {
-        if (Math.abs(primaryVelocity) <= minimumFlingVelocity && Math.abs(secondaryVelocity) <= minimumFlingVelocity) {
-            return false;
+    private void fling(float x, float velocity, Scroller scroller) {
+        if (Math.abs(velocity) <= minimumFlingVelocity) {
+            return;
         }
-        primaryVelocity = primaryVelocity > 0 ? Math.min(maximumFlingVelocity, primaryVelocity)
-                : -Math.min(maximumFlingVelocity, -primaryVelocity);
-        scroller.fling((int) primaryVelocity);
-        postOnAnimation(this::updateFromScroller);
-        return true;
+        velocity = velocity > 0 ? Math.min(maximumFlingVelocity, velocity) : -Math.min(maximumFlingVelocity, -velocity);
+        scroller.fling((int) x, 0, (int) velocity, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE,
+                Integer.MAX_VALUE);
     }
 
     private void updateFromScroller() {
-        if (scroller.computeScrollOffset()) {
-            float distance = scroller.getDistance();
-            float multiplier = scroller.getMultiplier();
+        boolean pScrolling = pScroller.computeScrollOffset();
+        boolean sScrolling = sScroller.computeScrollOffset();
+        if (pScrolling | sScrolling) {
+            float maxX = -Float.MAX_VALUE;
+            float minX = Float.MAX_VALUE;
+            if (pScrolling) {
+                float currX = pScroller.getCurrX();
+                maxX = Math.max(maxX, currX);
+                minX = Math.min(minX, currX);
+            }
+            if (sScrolling) {
+                float currX = sScroller.getCurrX();
+                maxX = Math.max(maxX, currX);
+                minX = Math.min(minX, currX);
+            }
+            float multiplier = 1;
+            if (oldMaxX != oldMinX && maxX != minX) {
+                multiplier = (maxX - minX) / (oldMaxX - oldMinX);
+            }
+            float distance = (oldMinX - offset) * multiplier - (minX - offset);
+            Log.d(TAG, "updateFromScroller: " + distance);
             dragScale(distance, multiplier);
+            oldMinX = minX;
+            oldMaxX = maxX;
             postOnAnimation(this::updateFromScroller);
-        } else if (flinging && scroller.isFinished()) {
-            flinging = false;
+        } else if (pScroller.isFinished() && sScroller.isFinished()) {
             stopDragging(false);
         }
     }
