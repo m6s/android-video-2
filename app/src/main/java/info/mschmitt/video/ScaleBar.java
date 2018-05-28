@@ -44,6 +44,8 @@ public class ScaleBar extends View implements TimeBar {
     private long initialPosition;
     private float positionChange;
     private boolean scrubbing;
+    private float minScaleFactor = 1;
+    private float maxScaleFactor = 1;
 
     {
         baseIntervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -238,6 +240,8 @@ public class ScaleBar extends View implements TimeBar {
 
     private void dragScale(float distance, float multiplier) {
         scaleFactor = scaleFactor * multiplier;
+        scaleFactor = Math.max(minScaleFactor, scaleFactor);
+        scaleFactor = Math.min(maxScaleFactor, scaleFactor);
         positionChange += distance / scaleFactor;
         position = (long) (initialPosition + positionChange);
         position = Math.max(0, position);
@@ -305,7 +309,7 @@ public class ScaleBar extends View implements TimeBar {
         } else {
             interval = 8000;
         }
-        long indexOffset = (long) (offset / interval * scaleFactor);
+        long indexOffset = (long) (offset / (interval * scaleFactor));
         long startIndex = position / interval;
         long remainder = position % interval;
         if (remainder > 0) {
@@ -373,6 +377,8 @@ public class ScaleBar extends View implements TimeBar {
     public void setDragTimeIncrement(long time, int unit, int dimension) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         scaleFactor = TypedValue.applyDimension(unit, dimension, displayMetrics) / time;
+        minScaleFactor = 0.003f;
+        maxScaleFactor = 10f;
         invalidate();
     }
 

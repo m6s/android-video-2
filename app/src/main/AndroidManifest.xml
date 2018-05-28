@@ -58,6 +58,7 @@
             android:label="Video Player Test" />
         <activity
             android:name=".ScaleBarActivity"
+            android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:label="Time Bar Test" />
