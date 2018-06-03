@@ -31,6 +31,8 @@ public class ScaleBar extends View implements TimeBar {
     private final int maximumFlingVelocity;
     private final CopyOnWriteArrayList<OnScrubListener> listeners = new CopyOnWriteArrayList<>();
     private final Paint paint = new Paint();
+    private final Scroller scaleScroller;
+    private final Scroller dragScroller;
     private long position;
     private long duration;
     private float scaleFactor;
@@ -43,6 +45,7 @@ public class ScaleBar extends View implements TimeBar {
     private boolean scrubbing;
     private float minScaleFactor = 1;
     private float maxScaleFactor = 1;
+    private TouchOrder touchOrder;
 
     {
         baseIntervalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -81,6 +84,8 @@ public class ScaleBar extends View implements TimeBar {
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         minimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
         maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity();
+        scaleScroller = new Scroller(context);
+        dragScroller = new Scroller(context);
     }
 
     public static int getDefaultEmptyColor(int playedColor) {
@@ -99,8 +104,25 @@ public class ScaleBar extends View implements TimeBar {
             if (action == MotionEvent.ACTION_POINTER_UP && i == index) {
                 continue;
             }
-            maxX = Math.max(maxX, event.getX(i));
-            minX = Math.min(minX, event.getX(i));
+            float x = event.getX(i);
+            maxX = Math.max(maxX, x);
+            minX = Math.min(minX, x);
+        }
+        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
+            touchOrder = null;
+            dragScroller.abortAnimation();
+            scaleScroller.abortAnimation();
+            // TODO Notify
+        }
+        if (scaleScroller.computeScrollOffset()) {
+            int x = scaleScroller.getCurrX();
+            if ((touchOrder == TouchOrder.LEFT_RIGHT && x < maxX + 20) || (touchOrder == TouchOrder.RIGHT_LEFT
+                    && x > minX - 20)) {
+                scaleScroller.abortAnimation();
+            } else {
+                maxX = Math.max(maxX, x);
+                minX = Math.min(minX, x);
+            }
         }
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -112,11 +134,6 @@ public class ScaleBar extends View implements TimeBar {
                 oldMinX = minX;
                 oldMaxX = maxX;
                 startDragging();
-                break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-                if (event.getPointerCount() > 2) {
-                    break;
-                }
                 break;
             case MotionEvent.ACTION_MOVE: {
                 velocityTracker.addMovement(event);
@@ -140,7 +157,11 @@ public class ScaleBar extends View implements TimeBar {
                 velocityTracker.computeCurrentVelocity(1000);
                 float primaryVelocity = velocityTracker.getXVelocity(event.getPointerId(index));
                 float primaryX = event.getX(index);
-                stopDragging(false);
+                dragScroller.fling((int) primaryX, 0, (int) primaryVelocity, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, 0,
+                        0);
+                dragScroller.computeScrollOffset();
+//                stopDragging(false); // TODO Remove
+                observeDragScroller();
                 velocityTracker.recycle();
                 velocityTracker = null;
                 break;
@@ -151,6 +172,9 @@ public class ScaleBar extends View implements TimeBar {
                 velocityTracker.computeCurrentVelocity(1000);
                 float secondaryVelocity = velocityTracker.getXVelocity(event.getPointerId(index));
                 float secondaryX = event.getX(index);
+                touchOrder = secondaryX > maxX ? TouchOrder.LEFT_RIGHT : TouchOrder.RIGHT_LEFT;
+                scaleScroller.fling((int) secondaryX, 0, (int) secondaryVelocity, 0, Integer.MIN_VALUE,
+                        Integer.MAX_VALUE, 0, 0);
                 break;
         }
         oldMaxX = maxX;
@@ -158,12 +182,42 @@ public class ScaleBar extends View implements TimeBar {
         return true;
     }
 
-    private void fling(float x, float velocity, Scroller scroller) {
-        if (Math.abs(velocity) <= minimumFlingVelocity) {
-            return;
+    private void observeDragScroller() {
+        float maxX = -Float.MAX_VALUE;
+        float minX = Float.MAX_VALUE;
+        if (dragScroller.computeScrollOffset()) {
+            int x = dragScroller.getCurrX();
+            if ((touchOrder == TouchOrder.LEFT_RIGHT && x > oldMaxX - 20) || (touchOrder == TouchOrder.RIGHT_LEFT
+                    && x < oldMinX + 20)) {
+                dragScroller.abortAnimation();
+            } else {
+                maxX = Math.max(maxX, x);
+                minX = Math.min(minX, x);
+            }
         }
-        velocity = velocity > 0 ? Math.min(maximumFlingVelocity, velocity) : -Math.min(maximumFlingVelocity, -velocity);
-        scroller.fling((int) x, 0, (int) velocity, 0, Integer.MIN_VALUE, Integer.MAX_VALUE, 0, 0);
+        if (scaleScroller.computeScrollOffset()) {
+            int x = scaleScroller.getCurrX();
+            if ((touchOrder == TouchOrder.LEFT_RIGHT && x < maxX + 20) || (touchOrder == TouchOrder.RIGHT_LEFT
+                    && x > minX - 20)) {
+                dragScroller.abortAnimation();
+            } else {
+                maxX = Math.max(maxX, x);
+                minX = Math.min(minX, x);
+            }
+        }
+        if (maxX == -Float.MAX_VALUE && minX == Float.MAX_VALUE) {
+            stopDragging(false);
+        } else {
+            float multiplier = 1;
+            if (oldMaxX != oldMinX && maxX != minX) {
+                multiplier = (maxX - minX) / (oldMaxX - oldMinX);
+            }
+            float distance = (oldMinX - offset) * multiplier - (minX - offset);
+            dragScale(distance, multiplier);
+            oldMaxX = maxX;
+            oldMinX = minX;
+            postOnAnimation(this::observeDragScroller);
+        }
     }
 
     private void startDragging() {
@@ -336,6 +390,10 @@ public class ScaleBar extends View implements TimeBar {
     public void setAdGroupTimesMs(@Nullable long[] adGroupTimesMs, @Nullable boolean[] playedAdGroups,
                                   int adGroupCount) {
         // Ignored for now
+    }
+
+    enum TouchOrder {
+        LEFT_RIGHT, RIGHT_LEFT
     }
 
     enum Side {LEFT, RIGHT}
